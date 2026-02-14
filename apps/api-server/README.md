@@ -21,8 +21,16 @@ cp .env.example .env
 
 ### 2. Install Dependencies
 
+**Using uv (recommended - fast, no package conflicts):**
 ```bash
 uv sync
+```
+
+**Or using conda:**
+```bash
+conda create -n mirothinker-api python=3.10
+conda activate mirothinker-api
+pip install fastapi uvicorn httpx pydantic python-dotenv
 ```
 
 ### 3. Start Server
@@ -157,12 +165,32 @@ result = response.json()
 print(result["ai_answer"])
 ```
 
+### GET `/api/scrape` - Scrape URL
+
+Scrape and extract content from a specific URL using Jina AI.
+
+**Request:**
+```bash
+curl "http://localhost:8080/api/scrape?url=https://example.com/article"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "url": "https://example.com/article",
+  "content": "Extracted markdown content..."
+}
+```
+
 ## Configuration
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
 | `TAVILY_API_KEY` | Tavily API key | Required |
 | `TAVILY_BASE_URL` | Tavily API base URL | https://api.tavily.com |
+| `JINA_API_KEY` | Jina AI API key | Optional |
+| `JINA_BASE_URL` | Jina AI base URL | https://r.jina.ai |
 | `SILICONFLOW_API_KEY` | SiliconFlow API key | Optional |
 | `SILICONFLOW_BASE_URL` | SiliconFlow base URL | https://api.siliconflow.cn/v1 |
 | `SILICONFLOW_MODEL` | Model name | Pro/zai-org/GLM-5 |

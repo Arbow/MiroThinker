@@ -29,6 +29,9 @@ load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 TAVILY_BASE_URL = os.getenv("TAVILY_BASE_URL", "https://api.tavily.com")
 
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+JINA_BASE_URL = os.getenv("JINA_BASE_URL", "https://r.jina.ai")
+
 SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
 SILICONFLOW_MODEL = os.getenv("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
@@ -133,7 +136,24 @@ async def call_tavily_search(
         return response.json()
 
 
-async def call_siliconflow_llm(
+async def call_jina_scrape(url: str) -> str:
+    """Call Jina AI to scrape and summarize webpage"""
+    
+    if not JINA_API_KEY:
+        raise ValueError("JINA_API_KEY not configured")
+    
+    headers = {
+        "Authorization": f"Bearer {JINA_API_KEY}",
+        "Accept": "application/json",
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(
+            f"{JINA_BASE_URL}/{url}",
+            headers=headers,
+        )
+        response.raise_for_status()
+        return response.text
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.7,
@@ -373,12 +393,38 @@ async def get_task_status(task_id: str):
     )
 
 
+@app.get("/api/scrape")
+async def scrape_url(url: str):
+    """
+    Scrape content from a URL using Jina AI.
+    
+    Query parameter:
+    - url: URL to scrape (required)
+    """
+    if not JINA_API_KEY:
+        raise HTTPException(status_code=500, detail="JINA_API_KEY not configured")
+    
+    if not url:
+        raise HTTPException(status_code=400, detail="URL parameter is required")
+    
+    try:
+        content = await call_jina_scrape(url)
+        return {
+            "success": True,
+            "url": url,
+            "content": content,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
         "tavily_configured": bool(TAVILY_API_KEY),
+        "jina_configured": bool(JINA_API_KEY),
         "siliconflow_configured": bool(SILICONFLOW_API_KEY),
         "active_tasks": len([t for t in task_store.values() if t["status"] == "running"]),
     }
@@ -394,6 +440,7 @@ async def root():
             "POST /api/search": "Create async search task",
             "POST /api/search/sync": "Synchronous search (blocking)",
             "GET /api/search/{task_id}": "Get task status/results",
+            "GET /api/scrape": "Scrape URL content (Jina)",
             "GET /api/health": "Health check",
         }
     }
