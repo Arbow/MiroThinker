@@ -84,7 +84,6 @@ class MiroThinkerAgent:
                 "context_management": "summary",
                 "main_agent": {
                     "tools": [
-                        "tool-python",
                         "tavily-search",
                         "jina_scrape_llm_summary",
                     ],

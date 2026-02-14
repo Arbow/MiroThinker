@@ -507,8 +507,14 @@ async def deep_research(request: DeepResearchRequest):
             max_turns=request.max_search_rounds,
         )
         
+        # Check if research failed
+        if not result.get("success"):
+            error_msg = result.get("error", "Unknown error during research")
+            print(f"❌ Research failed: {error_msg}")
+            raise HTTPException(status_code=500, detail=error_msg)
+        
         # If save_to_file is enabled, save the report and return file path
-        if request.save_to_file and result.get("success"):
+        if request.save_to_file:
             from datetime import datetime
             import os
             
