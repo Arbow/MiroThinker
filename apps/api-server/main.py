@@ -29,6 +29,18 @@ from pydantic import BaseModel, Field
 # Load environment variables
 load_dotenv()
 
+# Set SUMMARY_LLM_* variables for Jina MCP (if not already set)
+# These are required by miroflow-agent's settings.py
+if not os.environ.get("SUMMARY_LLM_BASE_URL"):
+    os.environ["SUMMARY_LLM_BASE_URL"] = os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
+if not os.environ.get("SUMMARY_LLM_MODEL_NAME"):
+    os.environ["SUMMARY_LLM_MODEL_NAME"] = os.environ.get("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
+if not os.environ.get("SUMMARY_LLM_API_KEY"):
+    os.environ["SUMMARY_LLM_API_KEY"] = os.environ.get("SILICONFLOW_API_KEY", "")
+
+# Now import miroflow-agent components (after env vars are set)
+from src.logging.task_logger import bootstrap_logger
+
 # API Configuration
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 TAVILY_BASE_URL = os.getenv("TAVILY_BASE_URL", "https://api.tavily.com")
