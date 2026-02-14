@@ -79,42 +79,34 @@ uv run python main.py
 
 ### 2. POST `/api/deep-research` - 多轮深度研究 ⭐
 
-**默认使用真正的 MiroThinker Agent**（使用 Hydra + Tavily MCP），执行真实的 Agent 推理和多轮工具调用。
+**使用真正的 MiroThinker Agent**（Hydra + Tavily MCP），执行真实的 Agent 推理和多轮工具调用。
 
-**请求参数：**
+**参数说明：**
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `query` | string | 研究主题（必填） |
-| `max_search_rounds` | int | Agent 工具调用轮数（1-50，默认20） |
+| `max_search_rounds` | int | **Agent 工具调用最大轮数**（1-50，默认20） |
 | `save_to_file` | bool | **保存报告到文件**（默认false） |
 | `output_path` | string | 自定义输出路径（可选） |
-| `use_mirothinker` | bool | 使用 MiroThinker Agent（默认true，推荐） |
 
-**MiroThinker Agent 模式（默认）：**
+**工作原理：**
+- 使用 Hydra 配置管理
+- 通过 MCP 调用 Tavily 搜索工具
+- Agent 自主决定搜索策略和查询
+- 执行真正的多轮深度研究
+
+**调用示例：**
 ```bash
 curl -X POST http://localhost:8080/api/deep-research \
   -H "Content-Type: application/json" \
   -d '{
     "query": "GLM 5.0 vs MiniMax M2.5 对比",
     "max_search_rounds": 20,
-    "save_to_file": true,
-    "use_mirothinker": true
+    "save_to_file": true
   }'
 ```
 
-**引擎选择：**
-- `use_mirothinker: true`（默认）→ 使用 **真正的 MiroThinker Agent**
-  - 使用 Hydra 配置管理
-  - 通过 MCP 调用 Tavily 搜索
-  - 真实的 Agent 推理和工具调用
-  - 执行真正的多轮深度研究
-  
-- `use_mirothinker: false` → 使用简化版搜索
-  - 直接调用 Tavily API
-  - 简单的轮询搜索
-  - 适合快速测试
-
-**响应（文件保存模式）：**
+**文件保存模式响应：**
 ```json
 {
   "success": true,
@@ -124,9 +116,16 @@ curl -X POST http://localhost:8080/api/deep-research \
   "file_saved": true,
   "file_path": "/Users/admin/.openclaw/workspace/20260214_164532_xxx.md",
   "file_size": 15234,
+  "task_id": "research_xxx",
   "note": "Full report saved to ..."
 }
 ```
+
+**优势：**
+- ✅ 真正的 Agent 推理（非简单轮询）
+- ✅ 自主搜索策略（Agent 决定何时停止）
+- ✅ 避免大量内容进入对话上下文
+- ✅ 直接生成 Markdown 文件，方便发布博客
 
 ---
 - ✅ 直接生成 Markdown 文件，方便发布博客
