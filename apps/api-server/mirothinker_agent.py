@@ -10,24 +10,18 @@ via HTTP API, without using subprocess.
 
 import asyncio
 import os
-import sys
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
-import tempfile
-import yaml
-
-# Add miroflow-agent to path
-MIROFLOW_AGENT_DIR = Path(__file__).parent.parent / "miroflow-agent"
-sys.path.insert(0, str(MIROFLOW_AGENT_DIR))
 
 from omegaconf import DictConfig, OmegaConf
 
-# Import MiroFlow components
+# Import MiroFlow components from miroflow-agent package
 from src.core.pipeline import (
     create_pipeline_components,
     execute_task_pipeline,
 )
+from src.logging.task_logger import bootstrap_logger
 from src.logging.task_logger import bootstrap_logger
 
 

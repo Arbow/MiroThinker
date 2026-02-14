@@ -23,14 +23,8 @@ SILICONFLOW_MODEL = os.getenv("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
 JINA_API_KEY = os.getenv("JINA_API_KEY", "")
 JINA_BASE_URL = os.getenv("JINA_BASE_URL", "https://r.jina.ai")
 
-# Import MiroThinker Agent (requires optional dependencies)
-try:
-    from mirothinker_agent import MiroThinkerAgent
-except ImportError as e:
-    raise RuntimeError(
-        "MiroThinker Agent not available. "
-        "Install dependencies: uv sync --extra mirothinker"
-    ) from e
+# Import MiroThinker Agent
+from mirothinker_agent import MiroThinkerAgent
 
 
 async def run_deep_research(
