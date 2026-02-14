@@ -77,6 +77,47 @@ Server will start at `http://localhost:8080`
 
 ## API Endpoints
 
+### POST `/api/mirothinker/research` - True MiroThinker Agent Deep Research ⭐
+
+**Uses the actual MiroThinker Agent** with multi-turn tool calls for authentic deep research.
+
+**Prerequisites:**
+```bash
+# Install MiroThinker dependencies
+uv sync --extra mirothinker
+
+# Install Tavily MCP (Node.js required)
+npm install -g tavily-mcp
+```
+
+**Request:**
+```json
+{
+  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "max_turns": 50
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "task_id": "research_abc123",
+  "final_answer": "## 执行摘要\n\nMiroThinker 是...",
+  "thinking_process": "Step 1: Searching for...",
+  "tool_calls": ["tavily_search: {...}", "tavily_search: {...}"],
+  "log_file": "/tmp/mirothinker_logs/..."
+}
+```
+
+**Features:**
+- ✅ True MiroThinker Agent with Hydra configuration
+- ✅ Multi-turn tool calls (up to 50 by default)
+- ✅ Tavily MCP for search
+- ✅ GLM-5 for reasoning
+- ✅ Full thinking process and tool call logs
+
 ### POST `/api/deep-research` - Deep Research (Multi-round)
 
 **MiroThinker-style deep research** with iterative search and synthesis.

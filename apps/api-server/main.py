@@ -16,6 +16,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Add miroflow-agent to Python path
+MIROFLOW_AGENT_DIR = Path(__file__).parent / ".." / "miroflow-agent"
+sys.path.insert(0, str(MIROFLOW_AGENT_DIR))
+
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -438,6 +442,55 @@ class DeepResearchRequest(BaseModel):
     """Deep research request model"""
     query: str = Field(..., description="Research query", min_length=1, max_length=2000)
     max_search_rounds: int = Field(default=3, ge=1, le=10, description="Maximum number of search rounds")
+
+
+# Try to import MiroThinker agent (requires optional dependencies)
+mirothinker_available = False
+try:
+    from mirothinker_agent import run_mirothinker_research
+    mirothinker_available = True
+except ImportError:
+    run_mirothinker_research = None
+    print("⚠️  MiroThinker agent not available. Install with: uv sync --extra mirothinker")
+
+
+class MiroThinkerRequest(BaseModel):
+    """MiroThinker agent request model"""
+    query: str = Field(..., description="Research query for MiroThinker agent", min_length=1, max_length=2000)
+    max_turns: int = Field(default=50, ge=1, le=100, description="Maximum agent turns")
+
+
+@app.post("/api/mirothinker/research")
+async def mirothinker_research(request: MiroThinkerRequest):
+    """
+    Run MiroThinker Agent for deep research.
+    
+    This endpoint uses the actual MiroThinker agent with Tavily MCP,
+    performing multi-turn tool-augmented reasoning.
+    
+    **This is the true MiroThinker deep research experience.**
+    """
+    if not mirothinker_available:
+        raise HTTPException(
+            status_code=503,
+            detail="MiroThinker agent not available. Install dependencies: uv sync --extra mirothinker"
+        )
+    
+    try:
+        result = await run_mirothinker_research(
+            query=request.query,
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=500, 
+                detail=result.get("error", "Unknown error")
+            )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/deep-research")
