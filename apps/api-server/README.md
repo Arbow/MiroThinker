@@ -1,96 +1,55 @@
-# HTTP API Server with Official MCP
+# MiroThinker HTTP API Server
 
-Simple HTTP API for AI search using **official Tavily MCP** and SiliconFlow GLM-5.
+完整的 HTTP API 服务，支持：
+1. **单次搜索** (Tavily)
+2. **多轮深度研究** (简化版)
+3. **真正的 MiroThinker Agent 调用** ⭐
 
-## Features
+## 快速开始
 
-- 🔍 **Official Tavily MCP**: Stable, maintained by Tavily team
-- 🤖 **GLM-5 Integration**: AI answer generation using SiliconFlow
-- ⚡ **Simple API**: RESTful endpoints with blocking and async modes
-- 📊 **Health Monitoring**: Health check endpoint for monitoring
-
-## Prerequisites
-
-- Python 3.10+
-- [uv](https://github.com/astral-sh/uv) or conda
-- **Node.js** (for official Tavily MCP)
-
-### Install Node.js
-
-```bash
-# macOS
-brew install node
-
-# Ubuntu/Debian
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Verify
-node --version  # Should be v18+
-npm --version
-```
-
-## Quick Start
-
-### 1. Configure API Keys
+### 1. 配置环境变量
 
 ```bash
 cd apps/api-server
 cp .env.example .env
-# Edit .env with your actual API keys
+# 编辑 .env 填入你的 API Keys
 ```
 
-### 2. Install Dependencies
+### 2. 安装依赖
 
-**Using uv (recommended):**
+**基础模式**（单次搜索 + 多轮研究）：
 ```bash
 uv sync
 ```
 
-**Or using conda:**
+**完整模式**（包含 MiroThinker Agent）：
 ```bash
-conda create -n mirothinker-api python=3.10
-conda activate mirothinker-api
-pip install fastapi uvicorn httpx pydantic python-dotenv
-```
-
-### 3. Install Official Tavily MCP
-
-```bash
-# Install globally (recommended)
-npm install -g tavily-mcp
-
-# Or use npx directly (no install needed)
-```
-
-### 4. Start Server
-
-```bash
-# Using uv
-./start.sh
-
-# Or using conda
-python main.py
-```
-
-Server will start at `http://localhost:8080`
-
-## API Endpoints
-
-### POST `/api/mirothinker/research` - True MiroThinker Agent Deep Research ⭐
-
-**Uses the actual MiroThinker Agent** with multi-turn tool calls for authentic deep research.
-
-**Prerequisites:**
-```bash
-# Install MiroThinker dependencies
+# Python 依赖
 uv sync --extra mirothinker
 
-# Install Tavily MCP (Node.js required)
+# Node.js 依赖（Tavily MCP）
 npm install -g tavily-mcp
 ```
 
-**Request:**
+### 3. 启动服务
+
+```bash
+./start.sh
+# 或
+uv run python main.py
+```
+
+服务启动在 `http://localhost:8080`
+
+---
+
+## API 端点
+
+### 1. POST `/api/mirothinker/research` - 真正的 MiroThinker Agent ⭐
+
+调用完整的 MiroThinker Agent 执行深度研究，支持多轮工具调用。
+
+**请求：**
 ```json
 {
   "query": "MiroThinker 在 AI 搜索上的亮点",
@@ -98,45 +57,45 @@ npm install -g tavily-mcp
 }
 ```
 
-**Response:**
+**响应：**
 ```json
 {
   "success": true,
   "query": "MiroThinker 在 AI 搜索上的亮点",
   "task_id": "research_abc123",
   "final_answer": "## 执行摘要\n\nMiroThinker 是...",
-  "thinking_process": "Step 1: Searching for...",
-  "tool_calls": ["tavily_search: {...}", "tavily_search: {...}"],
+  "thinking_process": "推理过程...",
+  "tool_calls": ["tavily_search: {...}", ...],
   "log_file": "/tmp/mirothinker_logs/..."
 }
 ```
 
-**Features:**
-- ✅ True MiroThinker Agent with Hydra configuration
-- ✅ Multi-turn tool calls (up to 50 by default)
-- ✅ Tavily MCP for search
-- ✅ GLM-5 for reasoning
-- ✅ Full thinking process and tool call logs
+**特点：**
+- 真正的 MiroThinker Agent (Hydra 配置)
+- 多轮工具调用（最多 50 轮）
+- 完整的推理过程和工具调用日志
 
-### POST `/api/deep-research` - Deep Research (Multi-round)
+---
 
-**MiroThinker-style deep research** with iterative search and synthesis.
+### 2. POST `/api/deep-research` - 多轮深度研究
 
-**Request:**
+简化版多轮搜索，不需要 MiroThinker 依赖。
+
+**请求：**
 ```json
 {
-  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "query": "研究主题",
   "max_search_rounds": 3
 }
 ```
 
-**Response:**
+**响应：**
 ```json
 {
   "success": true,
-  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "query": "研究主题",
   "search_rounds": 3,
-  "final_answer": "## 执行摘要...",
+  "final_answer": "综合报告...",
   "search_history": [
     {"round": 1, "query": "...", "result_count": 10},
     {"round": 2, "query": "...", "result_count": 10}
@@ -144,136 +103,180 @@ npm install -g tavily-mcp
 }
 ```
 
-### POST `/api/search/sync` - Synchronous Search
+---
 
-**Request:**
+### 3. POST `/api/search/sync` - 单次搜索
+
+快速单次搜索，立即返回结果。
+
+**请求：**
 ```json
 {
-  "query": "What is the latest AI research?",
+  "query": "搜索内容",
   "search_depth": "advanced",
   "max_results": 10
 }
 ```
 
-**Response:**
+**响应：**
 ```json
 {
   "success": true,
-  "query": "What is the latest AI research?",
+  "query": "搜索内容",
   "results": [...],
-  "ai_answer": "Based on the search results...",
+  "ai_answer": "AI 生成的综合分析...",
   "total_results": 10
 }
 ```
 
-### GET `/api/health` - Health Check
+---
 
+### 4. GET `/api/health` - 健康检查
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+**响应：**
 ```json
 {
   "status": "healthy",
   "tavily_configured": true,
-  "siliconflow_configured": true
+  "jina_configured": true,
+  "siliconflow_configured": true,
+  "mirothinker_available": true
 }
 ```
 
-## Configuration
+---
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `TAVILY_API_KEY` | Tavily API key | Required |
-| `TAVILY_BASE_URL` | Tavily API base URL | https://api.tavily.com |
-| `SILICONFLOW_API_KEY` | SiliconFlow API key | Optional |
-| `SILICONFLOW_BASE_URL` | SiliconFlow base URL | https://api.siliconflow.cn/v1 |
-| `SILICONFLOW_MODEL` | Model name | Pro/zai-org/GLM-5 |
-| `PORT` | Server port | 8080 |
-| `HOST` | Server host | 0.0.0.0 |
+## 调用示例
 
-## Using with Official MCP
-
-For MiroThinker integration using official MCP servers:
-
-```yaml
-# conf/agent/tavily_official.yaml
-defaults:
-  - default
-  - _self_
-
-main_agent:
-  tools:
-    - tool-python
-    - tavily-mcp  # Official Tavily MCP
-  max_turns: 200
-
-mcp_servers:
-  tavily-mcp:
-    command: npx
-    args: ["-y", "tavily-mcp@latest"]
-    env:
-      TAVILY_API_KEY: ${TAVILY_API_KEY}
-```
-
-Run:
-```bash
-export TAVILY_API_KEY=your_key
-uv run python main.py llm=qwen-3 agent=tavily_official llm.base_url=http://localhost:61002/v1
-```
-
-## Example Usage
-
-### Using curl
+### 使用 curl
 
 ```bash
-# Sync search
+# 1. 真正的 MiroThinker Agent (推荐)
+curl -X POST http://localhost:8080/api/mirothinker/research \
+  -H "Content-Type: application/json" \
+  -d '{"query": "最新 AI 技术趋势", "max_turns": 30}'
+
+# 2. 多轮深度研究
+curl -X POST http://localhost:8080/api/deep-research \
+  -H "Content-Type: application/json" \
+  -d '{"query": "量子计算进展", "max_search_rounds": 3}'
+
+# 3. 单次快速搜索
 curl -X POST http://localhost:8080/api/search/sync \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "Latest breakthroughs in quantum computing",
-    "search_depth": "advanced",
-    "max_results": 5
-  }'
+  -d '{"query": "OpenAI 新功能", "search_depth": "basic"}'
 ```
 
-### Using Python
+### 使用 Python
 
 ```python
 import requests
 
+# 真正的 MiroThinker Agent
 response = requests.post(
-    "http://localhost:8080/api/search/sync",
-    json={
-        "query": "Latest AI research trends",
-        "search_depth": "advanced",
-        "max_results": 10
-    }
+    "http://localhost:8080/api/mirothinker/research",
+    json={"query": "MiroThinker AI 搜索亮点", "max_turns": 50}
 )
 result = response.json()
-print(result["ai_answer"])
+print(result["final_answer"])
+print(f"工具调用次数: {len(result['tool_calls'])}")
 ```
 
-## Architecture
+---
+
+## 配置说明
+
+### 环境变量
+
+| 变量 | 说明 | 必需 |
+|------|------|------|
+| `TAVILY_API_KEY` | Tavily API Key | ✅ |
+| `SILICONFLOW_API_KEY` | SiliconFlow API Key | ✅ (Agent 模式) |
+| `SILICONFLOW_BASE_URL` | SiliconFlow Base URL | 可选 |
+| `SILICONFLOW_MODEL` | 模型名称 | 默认: Pro/zai-org/GLM-5 |
+| `JINA_API_KEY` | Jina API Key | 可选 |
+| `PORT` | 服务端口 | 默认: 8080 |
+| `HOST` | 服务地址 | 默认: 0.0.0.0 |
+
+---
+
+## 架构图
 
 ```
-┌─────────────┐     ┌─────────────────┐     ┌─────────────┐
-│   Client    │────▶│  HTTP API       │────▶│   Tavily    │
-│  (curl/py)  │◀────│  (FastAPI)      │◀────│   Search    │
-└─────────────┘     └─────────────────┘     └─────────────┘
-                            │
-                            ▼
-                    ┌─────────────────┐
-                    │  SiliconFlow    │
-                    │  GLM-5 (AI      │
-                    │  answer gen)    │
-                    └─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     HTTP API Server                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
+│  │ /api/mirothinker │  │ /api/deep-       │  │ /api/search   │  │
+│  │ /research        │  │ research         │  │ /sync         │  │
+│  └────────┬─────────┘  └────────┬─────────┘  └───────┬───────┘  │
+│           │                     │                    │          │
+│           ▼                     ▼                    ▼          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
+│  │ MiroThinkerAgent │  │ SimpleResearch   │  │ TavilySearch  │  │
+│  │ (Hydra + MCP)    │  │ (Multi-round)    │  │ (Single)      │  │
+│  └────────┬─────────┘  └────────┬─────────┘  └───────┬───────┘  │
+│           │                     │                    │          │
+│           ▼                     ▼                    ▼          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
+│  │ Tavily MCP       │  │ Tavily API       │  │ Tavily API    │  │
+│  │ SiliconFlow      │  │ SiliconFlow      │  │ SiliconFlow   │  │
+│  │ GLM-5            │  │ GLM-5            │  │ GLM-5         │  │
+│  └──────────────────┘  └──────────────────┘  └───────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Notes
+---
 
-- Uses **official Tavily API** directly (HTTP API mode)
-- For MiroThinker MCP integration, use `npx tavily-mcp`
-- API keys loaded from `.env` (never commit!)
+## 三种模式的区别
 
-## References
+| 特性 | MiroThinker Agent | 多轮深度研究 | 单次搜索 |
+|------|-------------------|--------------|----------|
+| **搜索次数** | 多轮 (可达 50+) | 2-10 轮 | 1 轮 |
+| **推理深度** | ⭐⭐⭐ 深度 | ⭐⭐ 中等 | ⭐ 浅层 |
+| **工具调用** | ✅ 完整 | ⚠️ 简化 | ❌ 无 |
+| **依赖** | Hydra + MCP | 仅 API | 仅 API |
+| **启动速度** | 较慢 | 快 | 最快 |
+| **适用场景** | 复杂研究 | 一般研究 | 快速查询 |
 
-- [Tavily Official MCP](https://github.com/tavily-ai/tavily-mcp)
+---
+
+## 故障排除
+
+### "MiroThinker agent not available"
+
+```bash
+# 安装缺少的依赖
+uv sync --extra mirothinker
+npm install -g tavily-mcp
+```
+
+### "TAVILY_API_KEY not configured"
+
+```bash
+# 检查 .env 文件
+cat .env | grep TAVILY
+
+# 或手动导出
+export TAVILY_API_KEY=your_key_here
+```
+
+### 导入错误
+
+确保从 `apps/api-server` 目录运行：
+```bash
+cd apps/api-server
+uv run python main.py
+```
+
+---
+
+## 参考
+
+- [MiroThinker GitHub](https://github.com/MiroMindAI/MiroFlow)
 - [Tavily API Docs](https://docs.tavily.com/)
 - [SiliconFlow Docs](https://docs.siliconflow.cn/)
