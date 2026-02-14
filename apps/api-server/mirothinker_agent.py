@@ -95,6 +95,7 @@ class MiroThinkerAgent:
                 "base_url": self.siliconflow_base_url,
                 "api_key": self.siliconflow_api_key,
                 "model": self.siliconflow_model,
+                "model_name": self.siliconflow_model,
                 "max_tokens": 8192,
                 "temperature": 0.7,
             },
