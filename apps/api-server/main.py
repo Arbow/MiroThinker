@@ -154,6 +154,9 @@ async def call_jina_scrape(url: str) -> str:
         )
         response.raise_for_status()
         return response.text
+
+
+async def call_siliconflow_llm(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.7,
