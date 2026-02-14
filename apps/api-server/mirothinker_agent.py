@@ -91,6 +91,7 @@ class MiroThinkerAgent:
                 },
             },
             "llm": {
+                "provider": "openai",
                 "base_url": self.siliconflow_base_url,
                 "api_key": self.siliconflow_api_key,
                 "model": self.siliconflow_model,
