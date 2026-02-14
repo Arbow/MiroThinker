@@ -156,10 +156,13 @@ class MiroThinkerAgent:
                 create_pipeline_components(cfg)
             )
         except Exception as e:
+            import traceback
+            error_msg = f"Failed to initialize pipeline: {str(e)}\n{traceback.format_exc()}"
+            self.logger.error(error_msg)
             return {
                 "success": False,
                 "query": query,
-                "error": f"Failed to initialize pipeline: {str(e)}",
+                "error": error_msg,
             }
         
         # Generate unique task ID
@@ -210,12 +213,14 @@ class MiroThinkerAgent:
             }
             
         except Exception as e:
-            self.logger.error(f"Research failed: {e}")
+            import traceback
+            error_msg = f"{str(e)}\n{traceback.format_exc()}"
+            self.logger.error(f"Research failed: {error_msg}")
             return {
                 "success": False,
                 "query": query,
                 "task_id": task_id,
-                "error": str(e),
+                "error": error_msg,
             }
     
     def _extract_thinking(self, log_content: str) -> str:
