@@ -157,7 +157,11 @@ class MiroThinkerAgent:
         os.environ["TAVILY_API_KEY"] = self.tavily_api_key
         os.environ["JINA_API_KEY"] = self.jina_api_key
         os.environ["JINA_BASE_URL"] = self.jina_base_url
-        os.environ["SUMMARY_LLM_BASE_URL"] = self.siliconflow_base_url
+        # Jina MCP uses direct httpx call, needs full path with /chat/completions
+        base_url = self.siliconflow_base_url.rstrip('/')
+        if not base_url.endswith('/v1'):
+            base_url += '/v1'
+        os.environ["SUMMARY_LLM_BASE_URL"] = f"{base_url}/chat/completions"
         os.environ["SUMMARY_LLM_MODEL_NAME"] = self.siliconflow_model
         os.environ["SUMMARY_LLM_API_KEY"] = self.siliconflow_api_key
         

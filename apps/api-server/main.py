@@ -31,8 +31,12 @@ load_dotenv()
 
 # Set SUMMARY_LLM_* variables for Jina MCP (if not already set)
 # These are required by miroflow-agent's settings.py
+# Note: Jina MCP uses direct httpx call (not OpenAI SDK), needs full path with /chat/completions
+base_url = os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1").rstrip('/')
+if not base_url.endswith('/v1'):
+    base_url += '/v1'
 if not os.environ.get("SUMMARY_LLM_BASE_URL"):
-    os.environ["SUMMARY_LLM_BASE_URL"] = os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
+    os.environ["SUMMARY_LLM_BASE_URL"] = f"{base_url}/chat/completions"
 if not os.environ.get("SUMMARY_LLM_MODEL_NAME"):
     os.environ["SUMMARY_LLM_MODEL_NAME"] = os.environ.get("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
 if not os.environ.get("SUMMARY_LLM_API_KEY"):
