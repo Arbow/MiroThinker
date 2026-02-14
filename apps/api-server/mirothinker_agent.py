@@ -145,6 +145,14 @@ class MiroThinkerAgent:
         if not self.siliconflow_api_key:
             raise ValueError("SILICONFLOW_API_KEY not configured")
         
+        # Set environment variables for MCP servers
+        os.environ["TAVILY_API_KEY"] = self.tavily_api_key
+        os.environ["JINA_API_KEY"] = self.jina_api_key
+        os.environ["JINA_BASE_URL"] = self.jina_base_url
+        os.environ["SUMMARY_LLM_BASE_URL"] = self.siliconflow_base_url
+        os.environ["SUMMARY_LLM_MODEL_NAME"] = self.siliconflow_model
+        os.environ["SUMMARY_LLM_API_KEY"] = self.siliconflow_api_key
+        
         # Create configuration
         cfg = self._create_config()
         
