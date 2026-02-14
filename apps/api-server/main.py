@@ -436,24 +436,12 @@ Format your response with clear headings and bullet points for readability."""
         raise HTTPException(status_code=500, detail=str(e))
 
 
-from deep_research import run_simple_research
-
 class DeepResearchRequest(BaseModel):
     """Deep research request model"""
     query: str = Field(..., description="Research query", min_length=1, max_length=2000)
     max_search_rounds: int = Field(default=20, ge=1, le=50, description="Maximum number of tool call rounds for the Agent (1-50)")
     save_to_file: bool = Field(default=False, description="Save full report to file instead of returning in response")
     output_path: Optional[str] = Field(default=None, description="Custom output file path (default: auto-generated in workspace)")
-
-
-# Try to import MiroThinker agent (requires optional dependencies)
-mirothinker_available = False
-try:
-    from mirothinker_agent import run_mirothinker_research
-    mirothinker_available = True
-except ImportError:
-    run_mirothinker_research = None
-    print("⚠️  MiroThinker agent not available. Install with: uv sync --extra mirothinker")
 
 
 class MiroThinkerRequest(BaseModel):
