@@ -441,7 +441,7 @@ from deep_research import run_simple_research
 class DeepResearchRequest(BaseModel):
     """Deep research request model"""
     query: str = Field(..., description="Research query", min_length=1, max_length=2000)
-    max_search_rounds: int = Field(default=3, ge=1, le=10, description="Maximum number of search rounds")
+    max_search_rounds: int = Field(default=3, ge=1, le=50, description="Maximum number of search rounds (1-50)")
 
 
 # Try to import MiroThinker agent (requires optional dependencies)
