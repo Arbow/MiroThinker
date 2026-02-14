@@ -20,6 +20,9 @@ SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
 SILICONFLOW_MODEL = os.getenv("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
 
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+JINA_BASE_URL = os.getenv("JINA_BASE_URL", "https://r.jina.ai")
+
 # Import MiroThinker Agent (requires optional dependencies)
 try:
     from mirothinker_agent import MiroThinkerAgent
@@ -40,6 +43,7 @@ async def run_deep_research(
     This uses the actual MiroThinker Agent with:
     - Hydra configuration
     - Tavily MCP server
+    - Jina MCP server (for web scraping with LLM summary)
     - Multi-turn tool calls
     - Real Agent reasoning
     
@@ -59,12 +63,17 @@ async def run_deep_research(
     if not SILICONFLOW_API_KEY:
         raise ValueError("SILICONFLOW_API_KEY not configured")
     
+    if not JINA_API_KEY:
+        raise ValueError("JINA_API_KEY not configured")
+    
     # Initialize MiroThinker Agent
     agent = MiroThinkerAgent(
         tavily_api_key=TAVILY_API_KEY,
         siliconflow_api_key=SILICONFLOW_API_KEY,
         siliconflow_base_url=SILICONFLOW_BASE_URL,
         siliconflow_model=SILICONFLOW_MODEL,
+        jina_api_key=JINA_API_KEY,
+        jina_base_url=JINA_BASE_URL,
         max_turns=max_turns,
         agent_config="tavily_official",
     )

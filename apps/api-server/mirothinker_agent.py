@@ -42,6 +42,8 @@ class MiroThinkerAgent:
         siliconflow_api_key: Optional[str] = None,
         siliconflow_base_url: str = "https://api.siliconflow.cn/v1",
         siliconflow_model: str = "Pro/zai-org/GLM-5",
+        jina_api_key: Optional[str] = None,
+        jina_base_url: str = "https://r.jina.ai",
         max_turns: int = 50,
         agent_config: str = "tavily_official",
     ):
@@ -53,6 +55,8 @@ class MiroThinkerAgent:
             siliconflow_api_key: SiliconFlow API key
             siliconflow_base_url: SiliconFlow base URL
             siliconflow_model: Model name (default: Pro/zai-org/GLM-5)
+            jina_api_key: Jina API key for web scraping
+            jina_base_url: Jina base URL (default: https://r.jina.ai)
             max_turns: Maximum agent turns (default: 50)
             agent_config: Agent configuration name (default: tavily_official)
         """
@@ -60,6 +64,8 @@ class MiroThinkerAgent:
         self.siliconflow_api_key = siliconflow_api_key or os.getenv("SILICONFLOW_API_KEY", "")
         self.siliconflow_base_url = siliconflow_base_url
         self.siliconflow_model = siliconflow_model
+        self.jina_api_key = jina_api_key or os.getenv("JINA_API_KEY", "")
+        self.jina_base_url = jina_base_url
         self.max_turns = max_turns
         self.agent_config = agent_config
         
@@ -68,6 +74,9 @@ class MiroThinkerAgent:
         
     def _create_config(self) -> DictConfig:
         """Create Hydra configuration for the agent"""
+        
+        # Get the path to jina_scrape_llm_summary.py
+        jina_mcp_path = Path(__file__).parent.parent / "libs" / "miroflow-tools" / "src" / "miroflow_tools" / "dev_mcp_servers" / "jina_scrape_llm_summary.py"
         
         # Base configuration
         config_dict = {
@@ -90,6 +99,17 @@ class MiroThinkerAgent:
                     "args": ["-y", "tavily-mcp@latest"],
                     "env": {
                         "TAVILY_API_KEY": self.tavily_api_key,
+                    },
+                },
+                "jina-scrape-llm-summary": {
+                    "command": "python",
+                    "args": [str(jina_mcp_path)],
+                    "env": {
+                        "JINA_API_KEY": self.jina_api_key,
+                        "JINA_BASE_URL": self.jina_base_url,
+                        "SUMMARY_LLM_BASE_URL": self.siliconflow_base_url,
+                        "SUMMARY_LLM_MODEL_NAME": self.siliconflow_model,
+                        "SUMMARY_LLM_API_KEY": self.siliconflow_api_key,
                     },
                 },
             },

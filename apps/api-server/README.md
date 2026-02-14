@@ -255,7 +255,7 @@ cp /Users/admin/.openclaw/workspace/20260214_164532_xxx.md \
 | `SILICONFLOW_API_KEY` | SiliconFlow API Key | ✅ (Agent 模式) |
 | `SILICONFLOW_BASE_URL` | SiliconFlow Base URL | 可选 |
 | `SILICONFLOW_MODEL` | 模型名称 | 默认: Pro/zai-org/GLM-5 |
-| `JINA_API_KEY` | Jina API Key | 可选 |
+| `JINA_API_KEY` | Jina API Key (网页抓取) | ✅ |
 | `PORT` | 服务端口 | 默认: 8080 |
 | `HOST` | 服务地址 | 默认: 0.0.0.0 |
 
