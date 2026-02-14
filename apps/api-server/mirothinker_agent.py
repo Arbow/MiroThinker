@@ -72,20 +72,31 @@ class MiroThinkerAgent:
         # Get the path to jina_scrape_llm_summary.py
         jina_mcp_path = Path(__file__).parent.parent / "libs" / "miroflow-tools" / "src" / "miroflow_tools" / "dev_mcp_servers" / "jina_scrape_llm_summary.py"
         
-        # Base configuration
+        # Full configuration inline (not using defaults to avoid Hydra loading issues)
         config_dict = {
-            "defaults": [
-                "_self_",
-                {"agent": self.agent_config},
-                {"llm": "default"},
-            ],
+            "agent": {
+                "name": "main",
+                "sub_agents": {},
+                "max_history": 20,
+                "keep_tool_result": 5,
+                "context_compress_limit": 30000,
+                "rollback_on_error": True,
+                "context_management": "summary",
+            },
             "main_agent": {
+                "tools": [
+                    "tool-python",
+                    "tavily-search",
+                    "jina_scrape_llm_summary",
+                ],
                 "max_turns": self.max_turns,
             },
             "llm": {
                 "base_url": self.siliconflow_base_url,
                 "api_key": self.siliconflow_api_key,
                 "model": self.siliconflow_model,
+                "max_tokens": 8192,
+                "temperature": 0.7,
             },
             "mcp_servers": {
                 "tavily-mcp": {
