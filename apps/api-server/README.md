@@ -177,15 +177,20 @@ curl http://localhost:8080/api/health
 ### 使用 curl
 
 ```bash
-# 1. 真正的 MiroThinker Agent (推荐)
+# 1. 深度研究 - 文件保存模式（推荐，避免上下文浪费）
+curl -X POST http://localhost:8080/api/deep-research \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "GLM 5.0 vs MiniMax M2.5 对比",
+    "max_search_rounds": 20,
+    "save_to_file": true
+  }'
+# 响应包含 file_path，然后使用 cat 读取文件内容
+
+# 2. 真正的 MiroThinker Agent（多轮工具调用）
 curl -X POST http://localhost:8080/api/mirothinker/research \
   -H "Content-Type: application/json" \
   -d '{"query": "最新 AI 技术趋势", "max_turns": 30}'
-
-# 2. 多轮深度研究
-curl -X POST http://localhost:8080/api/deep-research \
-  -H "Content-Type: application/json" \
-  -d '{"query": "量子计算进展", "max_search_rounds": 3}'
 
 # 3. 单次快速搜索
 curl -X POST http://localhost:8080/api/search/sync \
@@ -193,19 +198,43 @@ curl -X POST http://localhost:8080/api/search/sync \
   -d '{"query": "OpenAI 新功能", "search_depth": "basic"}'
 ```
 
-### 使用 Python
+### 使用 Python（文件保存模式）
 
 ```python
 import requests
 
-# 真正的 MiroThinker Agent
+# 深度研究 - 文件保存模式（推荐）
 response = requests.post(
-    "http://localhost:8080/api/mirothinker/research",
-    json={"query": "MiroThinker AI 搜索亮点", "max_turns": 50}
+    "http://localhost:8080/api/deep-research",
+    json={
+        "query": "MiroThinker AI 搜索亮点",
+        "max_search_rounds": 20,
+        "save_to_file": True
+    }
 )
 result = response.json()
-print(result["final_answer"])
-print(f"工具调用次数: {len(result['tool_calls'])}")
+
+if result.get("file_saved"):
+    file_path = result["file_path"]
+    print(f"报告已保存到: {file_path}")
+    
+    # 读取文件内容
+    with open(file_path, 'r', encoding='utf-8') as f:
+        report = f.read()
+    print(report)
+else:
+    print(result.get("final_answer"))
+```
+
+### 读取本地文件
+
+```bash
+# 读取完整报告
+cat /Users/admin/.openclaw/workspace/20260214_164532_xxx.md
+
+# 复制到博客目录
+cp /Users/admin/.openclaw/workspace/20260214_164532_xxx.md \
+   ~/workspace/arbow.github.io/source/_posts/
 ```
 
 ---
