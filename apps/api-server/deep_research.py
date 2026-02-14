@@ -19,6 +19,66 @@ SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
 SILICONFLOW_MODEL = os.getenv("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
 
+# Try to import MiroThinker Agent (requires optional dependencies)
+mirothinker_available = False
+try:
+    from mirothinker_agent import MiroThinkerAgent
+    mirothinker_available = True
+except ImportError:
+    MiroThinkerAgent = None
+    print("⚠️  MiroThinker Agent not available. Install with: uv sync --extra mirothinker")
+
+
+async def run_mirothinker_deep_research(
+    query: str,
+    max_turns: int = 20,
+) -> Dict[str, Any]:
+    """
+    Run deep research using real MiroThinker Agent with MCP
+    
+    This uses the actual MiroThinker Agent with:
+    - Hydra configuration
+    - Tavily MCP server
+    - Multi-turn tool calls
+    - Real Agent reasoning
+    """
+    if not mirothinker_available:
+        raise RuntimeError(
+            "MiroThinker Agent not available. "
+            "Install dependencies: uv sync --extra mirothinker"
+        )
+    
+    if not TAVILY_API_KEY:
+        raise ValueError("TAVILY_API_KEY not configured")
+    
+    if not SILICONFLOW_API_KEY:
+        raise ValueError("SILICONFLOW_API_KEY not configured")
+    
+    # Initialize MiroThinker Agent
+    agent = MiroThinkerAgent(
+        tavily_api_key=TAVILY_API_KEY,
+        siliconflow_api_key=SILICONFLOW_API_KEY,
+        siliconflow_base_url=SILICONFLOW_BASE_URL,
+        siliconflow_model=SILICONFLOW_MODEL,
+        max_turns=max_turns,
+        agent_config="tavily_official",
+    )
+    
+    # Run research
+    result = await agent.research(query)
+    
+    # Format to match simple research output
+    return {
+        "success": result.get("success", False),
+        "query": query,
+        "search_rounds": max_turns,  # Agent runs up to max_turns
+        "final_answer": result.get("final_answer", result.get("thinking_process", "")),
+        "search_history": [],  # Agent doesn't provide per-round history in this format
+        "is_mirothinker": True,
+        "task_id": result.get("task_id"),
+        "log_file": result.get("log_file"),
+    }
+
 
 async def call_tavily_search(
     query: str,
@@ -128,11 +188,12 @@ async def run_simple_research(
             "answer": search_result.get("answer", ""),
         })
         
-        # If we have an answer, we might be done
-        if search_result.get("answer") and round_num >= 1:
+        # Only break early if we have a comprehensive answer AND reached near max rounds
+        # Don't break early just because Tavily returned an answer - continue for depth
+        if search_result.get("answer") and round_num >= max_search_rounds - 1:
             break
         
-        # Otherwise, generate follow-up questions
+        # Always generate follow-up questions until max rounds reached
         if SILICONFLOW_API_KEY and round_num < max_search_rounds - 1:
             context = "\n\n".join([
                 f"Title: {r.get('title', '')}\n{r.get('content', '')[:500]}"

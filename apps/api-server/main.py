@@ -444,6 +444,7 @@ class DeepResearchRequest(BaseModel):
     max_search_rounds: int = Field(default=20, ge=1, le=50, description="Maximum number of search rounds (1-50)")
     save_to_file: bool = Field(default=False, description="Save full report to file instead of returning in response")
     output_path: Optional[str] = Field(default=None, description="Custom output file path (default: auto-generated in workspace)")
+    use_mirothinker: bool = Field(default=True, description="Use real MiroThinker Agent with MCP (recommended)")
 
 
 # Try to import MiroThinker agent (requires optional dependencies)
@@ -503,17 +504,39 @@ async def deep_research(request: DeepResearchRequest):
     Performs iterative searches and synthesis, similar to MiroThinker's approach.
     Uses Tavily for search and GLM-5 for analysis.
     
+    Set use_mirothinker=true (default) to use the real MiroThinker Agent with MCP.
+    Set use_mirothinker=false to use the simplified search mode.
     Set save_to_file=true to save the full report to a file and get the file path in response.
-    This reduces context usage and makes it easy to publish to blogs.
     """
     if not TAVILY_API_KEY:
         raise HTTPException(status_code=500, detail="TAVILY_API_KEY not configured")
     
     try:
-        result = await run_simple_research(
-            query=request.query,
-            max_search_rounds=request.max_search_rounds,
-        )
+        # Try to use MiroThinker Agent if available and requested
+        if request.use_mirothinker:
+            from deep_research import mirothinker_available, run_mirothinker_deep_research
+            
+            if mirothinker_available:
+                print(f"🤖 Using MiroThinker Agent for deep research: {request.query}")
+                result = await run_mirothinker_deep_research(
+                    query=request.query,
+                    max_turns=request.max_search_rounds,
+                )
+            else:
+                print(f"⚠️  MiroThinker Agent not available, falling back to simple mode")
+                from deep_research import run_simple_research
+                result = await run_simple_research(
+                    query=request.query,
+                    max_search_rounds=request.max_search_rounds,
+                )
+        else:
+            # Use simplified search mode
+            from deep_research import run_simple_research
+            print(f"🔍 Using simple search mode: {request.query}")
+            result = await run_simple_research(
+                query=request.query,
+                max_search_rounds=request.max_search_rounds,
+            )
         
         # If save_to_file is enabled, save the report and return file path
         if request.save_to_file and result.get("success"):
@@ -539,6 +562,7 @@ async def deep_research(request: DeepResearchRequest):
 
 **Query**: {request.query}
 **Search Rounds**: {result.get('search_rounds', 0)}
+**Engine**: {'MiroThinker Agent' if result.get('is_mirothinker') else 'Simple Search'}
 **Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 ---
@@ -562,6 +586,7 @@ async def deep_research(request: DeepResearchRequest):
                 "success": True,
                 "query": request.query,
                 "search_rounds": result.get('search_rounds', 0),
+                "engine": "MiroThinker Agent" if result.get('is_mirothinker') else "Simple Search",
                 "file_saved": True,
                 "file_path": output_file,
                 "file_size": len(report_content),
