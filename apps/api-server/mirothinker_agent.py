@@ -82,14 +82,14 @@ class MiroThinkerAgent:
                 "context_compress_limit": 30000,
                 "rollback_on_error": True,
                 "context_management": "summary",
-            },
-            "main_agent": {
-                "tools": [
-                    "tool-python",
-                    "tavily-search",
-                    "jina_scrape_llm_summary",
-                ],
-                "max_turns": self.max_turns,
+                "main_agent": {
+                    "tools": [
+                        "tool-python",
+                        "tavily-search",
+                        "jina_scrape_llm_summary",
+                    ],
+                    "max_turns": self.max_turns,
+                },
             },
             "llm": {
                 "base_url": self.siliconflow_base_url,
