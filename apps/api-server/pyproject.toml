@@ -2,7 +2,7 @@
 name = "mirothinker-http-api"
 version = "1.0.0"
 description = "Simple HTTP API for MiroThinker AI search"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
