@@ -77,6 +77,32 @@ Server will start at `http://localhost:8080`
 
 ## API Endpoints
 
+### POST `/api/deep-research` - Deep Research (Multi-round)
+
+**MiroThinker-style deep research** with iterative search and synthesis.
+
+**Request:**
+```json
+{
+  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "max_search_rounds": 3
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "query": "MiroThinker 在 AI 搜索上的亮点",
+  "search_rounds": 3,
+  "final_answer": "## 执行摘要...",
+  "search_history": [
+    {"round": 1, "query": "...", "result_count": 10},
+    {"round": 2, "query": "...", "result_count": 10}
+  ]
+}
+```
+
 ### POST `/api/search/sync` - Synchronous Search
 
 **Request:**

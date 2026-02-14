@@ -258,8 +258,8 @@ Format your response with clear headings and bullet points for readability."""
                 ai_answer = await call_siliconflow_llm(
                     system_prompt, 
                     user_prompt,
-                    temperature=0.3,  # Lower temperature for more factual output
-                    max_tokens=4096   # Allow longer responses
+                    temperature=0.3,
+                    max_tokens=8192  # GLM-5 supports up to 192K context
                 )
                 print(f"[{task_id}] LLM answer generated successfully ({len(ai_answer)} chars)")
             except Exception as e:
@@ -408,7 +408,7 @@ Format your response with clear headings and bullet points for readability."""
                     system_prompt,
                     user_prompt,
                     temperature=0.3,
-                    max_tokens=4096
+                    max_tokens=8192  # GLM-5 supports up to 192K context
                 )
             except Exception as e:
                 print(f"Failed to generate AI answer: {e}")
@@ -428,6 +428,35 @@ Format your response with clear headings and bullet points for readability."""
             status_code=e.response.status_code,
             detail=f"Tavily API error: {e.response.text}"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from deep_research import run_simple_research
+
+class DeepResearchRequest(BaseModel):
+    """Deep research request model"""
+    query: str = Field(..., description="Research query", min_length=1, max_length=2000)
+    max_search_rounds: int = Field(default=3, ge=1, le=10, description="Maximum number of search rounds")
+
+
+@app.post("/api/deep-research")
+async def deep_research(request: DeepResearchRequest):
+    """
+    Multi-round deep research.
+    
+    Performs iterative searches and synthesis, similar to MiroThinker's approach.
+    Uses Tavily for search and GLM-5 for analysis.
+    """
+    if not TAVILY_API_KEY:
+        raise HTTPException(status_code=500, detail="TAVILY_API_KEY not configured")
+    
+    try:
+        result = await run_simple_research(
+            query=request.query,
+            max_search_rounds=request.max_search_rounds,
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
