@@ -97,7 +97,13 @@ class MiroThinkerAgent:
                 "model": self.siliconflow_model,
                 "model_name": self.siliconflow_model,
                 "max_tokens": 8192,
+                "max_context_length": 128000,
                 "temperature": 0.7,
+                "top_p": 0.9,
+                "min_p": 0.05,
+                "top_k": 50,
+                "async_client": True,
+                "repetition_penalty": 1.0,
             },
             "mcp_servers": {
                 "tavily-mcp": {
