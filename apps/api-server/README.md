@@ -77,31 +77,53 @@ uv run python main.py
 
 ---
 
-### 2. POST `/api/deep-research` - 多轮深度研究
+### 2. POST `/api/deep-research` - 多轮深度研究 ⭐
 
 简化版多轮搜索，不需要 MiroThinker 依赖。
 
-**请求：**
-```json
-{
-  "query": "研究主题",
-  "max_search_rounds": 3
-}
+**请求参数：**
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `query` | string | 研究主题（必填） |
+| `max_search_rounds` | int | 搜索轮数（1-50，默认20） |
+| `save_to_file` | bool | **直接保存报告到文件**（默认false） |
+| `output_path` | string | 自定义输出路径（可选） |
+
+**普通模式（返回完整内容）：**
+```bash
+curl -X POST http://localhost:8080/api/deep-research \
+  -H "Content-Type: application/json" \
+  -d '{"query": "量子计算最新进展", "max_search_rounds": 5}'
 ```
 
-**响应：**
+**文件保存模式（推荐用于博客发布）：**
+```bash
+curl -X POST http://localhost:8080/api/deep-research \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "GLM 5.0 vs MiniMax M2.5 对比",
+    "max_search_rounds": 20,
+    "save_to_file": true
+  }'
+```
+
+**文件保存模式响应：**
 ```json
 {
   "success": true,
-  "query": "研究主题",
-  "search_rounds": 3,
-  "final_answer": "综合报告...",
-  "search_history": [
-    {"round": 1, "query": "...", "result_count": 10},
-    {"round": 2, "query": "...", "result_count": 10}
-  ]
+  "query": "GLM 5.0 vs MiniMax M2.5 对比",
+  "search_rounds": 20,
+  "file_saved": true,
+  "file_path": "/Users/admin/.openclaw/workspace/20260214_164532_GLM_5_0_vs_MiniMax_M2_5_对比.md",
+  "file_size": 15234,
+  "note": "Full report saved to /Users/admin/.openclaw/workspace/... Use file content for publishing."
 }
 ```
+
+**优势：**
+- ✅ 避免大量内容进入对话上下文
+- ✅ 直接生成 Markdown 文件，方便发布博客
+- ✅ 文件包含完整报告格式（标题、查询、搜索历史）
 
 ---
 

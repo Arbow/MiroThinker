@@ -442,6 +442,8 @@ class DeepResearchRequest(BaseModel):
     """Deep research request model"""
     query: str = Field(..., description="Research query", min_length=1, max_length=2000)
     max_search_rounds: int = Field(default=20, ge=1, le=50, description="Maximum number of search rounds (1-50)")
+    save_to_file: bool = Field(default=False, description="Save full report to file instead of returning in response")
+    output_path: Optional[str] = Field(default=None, description="Custom output file path (default: auto-generated in workspace)")
 
 
 # Try to import MiroThinker agent (requires optional dependencies)
@@ -500,6 +502,9 @@ async def deep_research(request: DeepResearchRequest):
     
     Performs iterative searches and synthesis, similar to MiroThinker's approach.
     Uses Tavily for search and GLM-5 for analysis.
+    
+    Set save_to_file=true to save the full report to a file and get the file path in response.
+    This reduces context usage and makes it easy to publish to blogs.
     """
     if not TAVILY_API_KEY:
         raise HTTPException(status_code=500, detail="TAVILY_API_KEY not configured")
@@ -509,6 +514,60 @@ async def deep_research(request: DeepResearchRequest):
             query=request.query,
             max_search_rounds=request.max_search_rounds,
         )
+        
+        # If save_to_file is enabled, save the report and return file path
+        if request.save_to_file and result.get("success"):
+            from datetime import datetime
+            import os
+            
+            # Generate filename
+            safe_query = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in request.query)[:50]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{safe_query.replace(' ', '_')}.md"
+            
+            # Determine output path
+            if request.output_path:
+                output_file = request.output_path
+            else:
+                # Default to workspace directory
+                workspace_dir = os.path.expanduser("~/.openclaw/workspace")
+                os.makedirs(workspace_dir, exist_ok=True)
+                output_file = os.path.join(workspace_dir, filename)
+            
+            # Format the report
+            report_content = f"""# Deep Research Report
+
+**Query**: {request.query}
+**Search Rounds**: {result.get('search_rounds', 0)}
+**Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+---
+
+{result.get('final_answer', 'No content generated')}
+
+---
+
+## Search History
+
+"""
+            for sh in result.get('search_history', []):
+                report_content += f"- Round {sh['round']}: {sh['query']} ({sh['result_count']} results)\n"
+            
+            # Save to file
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(report_content)
+            
+            # Return shortened response with file path
+            return {
+                "success": True,
+                "query": request.query,
+                "search_rounds": result.get('search_rounds', 0),
+                "file_saved": True,
+                "file_path": output_file,
+                "file_size": len(report_content),
+                "note": f"Full report saved to {output_file}. Use file content for publishing."
+            }
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

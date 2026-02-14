@@ -8,112 +8,89 @@ Runs MiroThinker agent for multi-turn deep research
 
 import asyncio
 import os
-import subprocess
-import tempfile
-import json
-from pathlib import Path
-from typing import Optional, Dict, Any
 import httpx
+from typing import Optional, Dict, Any
 
-# Configuration
+# API Configuration
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
+TAVILY_BASE_URL = os.getenv("TAVILY_BASE_URL", "https://api.tavily.com")
+
 SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
 SILICONFLOW_MODEL = os.getenv("SILICONFLOW_MODEL", "Pro/zai-org/GLM-5")
 
-MIROFLOW_AGENT_DIR = Path(__file__).parent.parent / "miroflow-agent"
 
-
-async def run_deep_research(
+async def call_tavily_search(
     query: str,
-    max_turns: int = 50,
-    llm_config: Optional[Dict[str, str]] = None,
+    search_depth: str = "basic",
+    max_results: int = 10,
+    include_answer: bool = True,
+    include_raw_content: bool = False,
+    topic: str = "general",
+    days: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """
-    Run MiroThinker deep research using Tavily MCP
+    """Call Tavily search API"""
     
-    This function:
-    1. Sets up MiroThinker configuration
-    2. Runs the agent with the query
-    3. Captures the output
-    4. Returns structured results
-    """
+    if not TAVILY_API_KEY:
+        raise ValueError("TAVILY_API_KEY not configured")
     
-    # Default LLM config
-    if llm_config is None:
-        llm_config = {
-            "base_url": SILICONFLOW_BASE_URL,
-            "api_key": SILICONFLOW_API_KEY,
-            "model": SILICONFLOW_MODEL,
-        }
+    payload = {
+        "api_key": TAVILY_API_KEY,
+        "query": query,
+        "search_depth": search_depth,
+        "include_answer": include_answer,
+        "include_raw_content": include_raw_content,
+        "max_results": max_results,
+        "topic": topic,
+    }
     
-    # Create a temporary config file for this research task
-    config_content = f"""defaults:
-  - default
-  - _self_
+    if days is not None and topic == "news":
+        payload["days"] = min(days, 30)
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.post(
+            f"{TAVILY_BASE_URL}/search",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        response.raise_for_status()
+        return response.json()
 
-main_agent:
-  tools:
-    - tool-python
-    - tavily-mcp
-  max_turns: {max_turns}
-  system_prompt: |
-    You are MiroThinker, an expert deep research agent. Your goal is to thoroughly research the user's query.
-    
-    Instructions:
-    1. Break down complex queries into sub-questions
-    2. Use tavily_search to gather information from multiple sources
-    3. Analyze and synthesize the information
-    4. Provide a comprehensive, well-structured report
-    5. Cite your sources
-    
-    Always use the search tool to verify facts. Don't rely on your training data alone.
 
-mcp_servers:
-  tavily-mcp:
-    command: npx
-    args: ["-y", "tavily-mcp@latest"]
-    env:
-      TAVILY_API_KEY: {os.getenv('TAVILY_API_KEY', '')}
-"""
+async def call_siliconflow_llm(
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float = 0.7,
+    max_tokens: int = 8192,
+) -> str:
+    """Call SiliconFlow LLM API (GLM-5)"""
     
-    # Write temporary config
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-        f.write(config_content)
-        config_path = f.name
+    if not SILICONFLOW_API_KEY:
+        raise ValueError("SILICONFLOW_API_KEY not configured")
     
-    try:
-        # Prepare environment
-        env = os.environ.copy()
-        env['PYTHONPATH'] = str(MIROFLOW_AGENT_DIR.parent)
-        
-        # Build command to run MiroThinker
-        # Note: This is a simplified version. In production, you'd want to:
-        # 1. Use the MiroFlow library directly instead of subprocess
-        # 2. Stream output in real-time
-        # 3. Handle interactive prompts properly
-        
-        cmd = [
-            "python", "-m", "miroflow_agent.main",
-            f"--config-path={config_path}",
-            f"query={query}",
-            f"llm.base_url={llm_config['base_url']}",
-            f"llm.api_key={llm_config['api_key']}",
-            f"llm.model={llm_config['model']}",
-        ]
-        
-        # For now, return a placeholder
-        # Real implementation would run the subprocess and capture output
-        return {
-            "success": False,
-            "error": "Deep research runner requires MiroThinker CLI integration. "
-                     "Please run MiroThinker directly: "
-                     f"cd {MIROFLOW_AGENT_DIR} && uv run python main.py agent=tavily_official ...",
-            "query": query,
-        }
-        
-    finally:
-        # Cleanup
-        os.unlink(config_path)
+    payload = {
+        "model": SILICONFLOW_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": False,
+    }
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.post(
+            f"{SILICONFLOW_BASE_URL}/chat/completions",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {SILICONFLOW_API_KEY}",
+                "Content-Type": "application/json",
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
 
 
 async def run_simple_research(
@@ -126,10 +103,6 @@ async def run_simple_research(
     This is a lightweight alternative to full MiroThinker integration.
     It performs multiple Tavily searches iteratively.
     """
-    
-    from main import call_tavily_search, call_siliconflow_llm
-    
-    TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
     
     if not TAVILY_API_KEY:
         raise ValueError("TAVILY_API_KEY not configured")
