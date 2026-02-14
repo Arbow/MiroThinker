@@ -29,6 +29,14 @@ SERPER_BASE_URL = os.environ.get("SERPER_BASE_URL", "https://google.serper.dev")
 JINA_API_KEY = os.environ.get("JINA_API_KEY")
 JINA_BASE_URL = os.environ.get("JINA_BASE_URL", "https://r.jina.ai")
 
+# API for Tavily Search
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
+TAVILY_BASE_URL = os.environ.get("TAVILY_BASE_URL", "https://api.tavily.com")
+
+# API for Firecrawl Search
+FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY")
+FIRECRAWL_BASE_URL = os.environ.get("FIRECRAWL_BASE_URL", "https://api.firecrawl.dev")
+
 # API for Linux Sandbox
 E2B_API_KEY = os.environ.get("E2B_API_KEY")
 
@@ -332,6 +340,50 @@ def create_mcp_server_parameters(cfg: DictConfig, agent_cfg: DictConfig):
             }
         )
 
+    # Tavily Search MCP Server
+    if (
+        agent_cfg.get("tools", None) is not None
+        and "tavily-search" in agent_cfg["tools"]
+    ):
+        if not TAVILY_API_KEY:
+            raise ValueError(
+                "TAVILY_API_KEY not set, tavily-search will be unavailable."
+            )
+        configs.append(
+            {
+                "name": "tavily-search",
+                "params": StdioServerParameters(
+                    command="npx",
+                    args=["-y", "tavily-mcp@latest"],
+                    env={
+                        "TAVILY_API_KEY": TAVILY_API_KEY,
+                    },
+                ),
+            }
+        )
+
+    # Firecrawl Search MCP Server
+    if (
+        agent_cfg.get("tools", None) is not None
+        and "firecrawl-search" in agent_cfg["tools"]
+    ):
+        if not FIRECRAWL_API_KEY:
+            raise ValueError(
+                "FIRECRAWL_API_KEY not set, firecrawl-search will be unavailable."
+            )
+        configs.append(
+            {
+                "name": "firecrawl-search",
+                "params": StdioServerParameters(
+                    command="npx",
+                    args=["-y", "firecrawl-mcp@latest"],
+                    env={
+                        "FIRECRAWL_API_KEY": FIRECRAWL_API_KEY,
+                    },
+                ),
+            }
+        )
+
     if (
         agent_cfg.get("tools", None) is not None
         and "stateless_python" in agent_cfg["tools"]
@@ -462,6 +514,8 @@ def get_env_info(cfg: DictConfig) -> dict:
         # API Keys (masked for security)
         "has_serper_api_key": bool(SERPER_API_KEY),
         "has_jina_api_key": bool(JINA_API_KEY),
+        "has_tavily_api_key": bool(TAVILY_API_KEY),
+        "has_firecrawl_api_key": bool(FIRECRAWL_API_KEY),
         "has_anthropic_api_key": bool(ANTHROPIC_API_KEY),
         "has_openai_api_key": bool(OPENAI_API_KEY),
         "has_e2b_api_key": bool(E2B_API_KEY),
@@ -472,6 +526,8 @@ def get_env_info(cfg: DictConfig) -> dict:
         "openai_base_url": OPENAI_BASE_URL,
         "anthropic_base_url": ANTHROPIC_BASE_URL,
         "jina_base_url": JINA_BASE_URL,
+        "tavily_base_url": TAVILY_BASE_URL,
+        "firecrawl_base_url": FIRECRAWL_BASE_URL,
         "serper_base_url": SERPER_BASE_URL,
         "whisper_base_url": WHISPER_BASE_URL,
         "vision_base_url": VISION_BASE_URL,

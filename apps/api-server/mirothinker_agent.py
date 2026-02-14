@@ -84,7 +84,7 @@ class MiroThinkerAgent:
                 "context_management": "summary",
                 "main_agent": {
                     "tools": [
-                        "tavily-search",
+                        "tavily-search",  # 使用 tavily-search（现在已在内置工具中）
                         "jina_scrape_llm_summary",
                     ],
                     "max_turns": self.max_turns,
