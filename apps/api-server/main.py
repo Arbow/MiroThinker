@@ -578,26 +578,6 @@ async def deep_research(request: DeepResearchRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-            
-            # Save to file
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(report_content)
-            
-            # Return shortened response with file path
-            return {
-                "success": True,
-                "query": request.query,
-                "search_rounds": result.get('search_rounds', 0),
-                "engine": "MiroThinker Agent" if result.get('is_mirothinker') else "Simple Search",
-                "file_saved": True,
-                "file_path": output_file,
-                "file_size": len(report_content),
-                "note": f"Full report saved to {output_file}. Use file content for publishing."
-            }
-        
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/search/{task_id}", response_model=TaskStatusResponse)
