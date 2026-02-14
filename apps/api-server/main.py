@@ -49,6 +49,7 @@ class SearchRequest(BaseModel):
     include_raw_content: bool = Field(default=False, description="Include raw page content")
     topic: str = Field(default="general", description="Topic: general or news")
     days: Optional[int] = Field(default=None, description="For news, days back to search")
+    force_llm_answer: bool = Field(default=True, description="Force use LLM to generate detailed answer based on all search results")
 
 
 class SearchResponse(BaseModel):
@@ -211,34 +212,60 @@ async def execute_search_task(task_id: str, request: SearchRequest):
             days=request.days,
         )
         
-        # 2. If no AI answer from Tavily, generate one using GLM-5
+        # 2. Generate AI answer using GLM-5 for detailed analysis
         ai_answer = search_result.get("answer", "")
         
-        if not ai_answer and SILICONFLOW_API_KEY:
-            print(f"[{task_id}] Generating AI answer with GLM-5")
+        if SILICONFLOW_API_KEY and (request.force_llm_answer or not ai_answer):
+            print(f"[{task_id}] Generating detailed AI answer with GLM-5")
             
-            # Build context from search results
+            # Build comprehensive context from search results
             organic_results = search_result.get("results", [])
-            context = "\n\n".join([
-                f"Title: {r.get('title', '')}\nContent: {r.get('content', '')[:500]}"
-                for r in organic_results[:5]
-            ])
+            context_parts = []
+            for i, r in enumerate(organic_results[:8], 1):
+                title = r.get('title', 'No title')
+                content = r.get('content', '')[:800]  # Increased context length
+                url = r.get('url', '')
+                context_parts.append(f"[{i}] {title}\nURL: {url}\nContent: {content}\n")
             
-            system_prompt = """You are a helpful research assistant. Based on the provided search results, 
-provide a comprehensive answer to the user's question. Cite sources when possible."""
+            context = "\n".join(context_parts)
             
-            user_prompt = f"""Question: {request.query}
+            system_prompt = """You are an expert research analyst. Your task is to provide a comprehensive, detailed answer based on the provided search results. 
+
+Requirements:
+1. Analyze all provided search results thoroughly
+2. Structure your answer with clear sections and bullet points
+3. Include specific data, numbers, and facts from the sources
+4. Cite sources using [1], [2], etc. when referencing information
+5. If the search results contain conflicting information, acknowledge it
+6. Provide actionable insights and conclusions
+7. Answer in the same language as the user's query
+8. Be thorough - this is a deep research report, not a brief summary"""
+            
+            user_prompt = f"""Research Query: {request.query}
 
 Search Results:
 {context}
 
-Please provide a comprehensive answer based on these search results."""
+Please provide a comprehensive research report answering the query. Include:
+- Key findings and main points
+- Specific data and evidence from sources
+- Analysis and insights
+- Conclusions and recommendations
+
+Format your response with clear headings and bullet points for readability."""
             
             try:
-                ai_answer = await call_siliconflow_llm(system_prompt, user_prompt)
+                ai_answer = await call_siliconflow_llm(
+                    system_prompt, 
+                    user_prompt,
+                    temperature=0.3,  # Lower temperature for more factual output
+                    max_tokens=4096   # Allow longer responses
+                )
+                print(f"[{task_id}] LLM answer generated successfully ({len(ai_answer)} chars)")
             except Exception as e:
                 print(f"[{task_id}] Failed to generate AI answer: {e}")
-                ai_answer = ""
+                if not ai_answer:  # Only use Tavily answer if LLM failed and no Tavily answer
+                    ai_answer = "Error generating detailed answer. Using search results only."
         
         # 3. Build final result
         result = {
@@ -337,23 +364,56 @@ async def search_sync(request: SearchRequest):
             days=request.days,
         )
         
-        # Generate AI answer if needed
+        # Generate detailed AI answer using GLM-5
         ai_answer = search_result.get("answer", "")
         
-        if not ai_answer and SILICONFLOW_API_KEY:
+        if SILICONFLOW_API_KEY and (request.force_llm_answer or not ai_answer):
             organic_results = search_result.get("results", [])
-            context = "\n\n".join([
-                f"Title: {r.get('title', '')}\nContent: {r.get('content', '')[:500]}"
-                for r in organic_results[:5]
-            ])
+            context_parts = []
+            for i, r in enumerate(organic_results[:8], 1):
+                title = r.get('title', 'No title')
+                content = r.get('content', '')[:800]
+                url = r.get('url', '')
+                context_parts.append(f"[{i}] {title}\nURL: {url}\nContent: {content}\n")
+            
+            context = "\n".join(context_parts)
+            
+            system_prompt = """You are an expert research analyst. Your task is to provide a comprehensive, detailed answer based on the provided search results. 
+
+Requirements:
+1. Analyze all provided search results thoroughly
+2. Structure your answer with clear sections and bullet points
+3. Include specific data, numbers, and facts from the sources
+4. Cite sources using [1], [2], etc. when referencing information
+5. If the search results contain conflicting information, acknowledge it
+6. Provide actionable insights and conclusions
+7. Answer in the same language as the user's query
+8. Be thorough - this is a deep research report, not a brief summary"""
+            
+            user_prompt = f"""Research Query: {request.query}
+
+Search Results:
+{context}
+
+Please provide a comprehensive research report answering the query. Include:
+- Key findings and main points
+- Specific data and evidence from sources
+- Analysis and insights
+- Conclusions and recommendations
+
+Format your response with clear headings and bullet points for readability."""
             
             try:
                 ai_answer = await call_siliconflow_llm(
-                    "You are a helpful research assistant.",
-                    f"Question: {request.query}\n\nSearch Results:\n{context}\n\nProvide a comprehensive answer."
+                    system_prompt,
+                    user_prompt,
+                    temperature=0.3,
+                    max_tokens=4096
                 )
             except Exception as e:
                 print(f"Failed to generate AI answer: {e}")
+                if not ai_answer:
+                    ai_answer = "Error generating detailed answer."
         
         return {
             "success": True,
