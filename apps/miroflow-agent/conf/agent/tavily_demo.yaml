@@ -1,0 +1,21 @@
+# Tavily MCP Server Configuration
+# Add this to your agent YAML configuration to use Tavily search
+
+defaults:
+  - default
+  - _self_
+
+# Environment variables required:
+# - TAVILY_API_KEY: Your Tavily API key
+# - TAVILY_BASE_URL: (optional) Custom Tavily endpoint
+
+main_agent:
+  tools:
+    - tool-python
+    - tavily-search         # Tavily search with AI answer
+    # - tavily-extract      # Optional: dedicated URL extract
+    - jina_scrape_llm_summary  # Can combine with Jina for scraping
+  max_turns: 200
+
+# Tavily provides AI-generated answers which can be very helpful
+# The search results include relevance scores and optional raw content

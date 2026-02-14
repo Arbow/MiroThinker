@@ -1,0 +1,21 @@
+[project]
+name = "mirothinker-http-api"
+version = "1.0.0"
+description = "Simple HTTP API for MiroThinker AI search"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.uv]
+python-downloads = "automatic"

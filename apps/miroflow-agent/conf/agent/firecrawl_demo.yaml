@@ -1,0 +1,26 @@
+# Firecrawl MCP Server Configuration
+# Add this to your agent YAML configuration to use Firecrawl search
+
+defaults:
+  - default
+  - _self_
+
+# Environment variables required:
+# - FIRECRAWL_API_KEY: Your Firecrawl API key
+# - FIRECRAWL_BASE_URL: (optional) Custom Firecrawl endpoint
+
+main_agent:
+  tools:
+    - tool-python
+    - firecrawl-search      # Use Firecrawl for search + scrape
+    # - firecrawl-scrape    # Optional: dedicated scrape tool
+    - jina_scrape_llm_summary  # Can still use Jina for LLM summary
+  max_turns: 200
+
+# Alternative: Combine Firecrawl search with Serper as fallback
+# main_agent:
+#   tools:
+#     - tool-python
+#     - search_and_scrape_webpage  # Serper + Jina
+#     - firecrawl-search          # Firecrawl as additional option
+#   max_turns: 200
