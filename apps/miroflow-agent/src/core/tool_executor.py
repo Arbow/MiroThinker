@@ -119,6 +119,10 @@ class ToolExecutor:
             return tool_name + "_" + arguments.get("subtask", "")
         elif tool_name == "google_search":
             return tool_name + "_" + arguments.get("q", "")
+        elif tool_name == "brave_llm_context":
+            return tool_name + "_" + arguments.get("q", "")
+        elif tool_name == "webReader":
+            return tool_name + "_" + arguments.get("url", "")
         elif tool_name == "sogou_search":
             return tool_name + "_" + arguments.get("Query", "")
         elif tool_name == "scrape_website":
@@ -180,13 +184,28 @@ class ToolExecutor:
             return False
 
         try:
-            if isinstance(result, str):
-                result_dict = json.loads(result)
-            else:
-                result_dict = result
-
+            result_dict = json.loads(result) if isinstance(result, str) else result
             organic = result_dict.get("organic", [])
             return len(organic) == 0
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            return False
+
+    def is_brave_llm_context_empty_result(
+        self, tool_name: str, tool_result: dict
+    ) -> bool:
+        """Check if brave_llm_context returned empty grounding results."""
+        if tool_name != "brave_llm_context":
+            return False
+
+        result = tool_result.get("result")
+        if not result:
+            return False
+
+        try:
+            result_dict = json.loads(result) if isinstance(result, str) else result
+            grounding = result_dict.get("grounding", {})
+            generic = grounding.get("generic", [])
+            return isinstance(generic, list) and len(generic) == 0
         except (json.JSONDecodeError, TypeError, AttributeError):
             return False
 
@@ -255,6 +274,7 @@ class ToolExecutor:
             str(result).startswith("Unknown tool:")
             or str(result).startswith("Error executing tool")
             or self.is_google_search_empty_result(tool_name, tool_result)
+            or self.is_brave_llm_context_empty_result(tool_name, tool_result)
         )
 
     async def execute_single_tool_call(

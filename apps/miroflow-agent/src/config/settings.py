@@ -22,47 +22,57 @@ from omegaconf import DictConfig
 load_dotenv()
 
 # API for Google Search
-SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
+SERPER_API_KEY = os.environ.get("SERPER_API_KEY") or ""
 SERPER_BASE_URL = os.environ.get("SERPER_BASE_URL", "https://google.serper.dev")
 
+# API for Brave Search (LLM Context)
+BRAVE_API_KEY = os.environ.get("BRAVE_API_KEY") or ""
+BRAVE_API_VERSION = os.environ.get("BRAVE_API_VERSION") or ""
+
+# API for BigModel / Zhipu WebReader MCP
+BIGMODEL_API_KEY = os.environ.get("BIGMODEL_API_KEY") or ""
+BIGMODEL_WEB_READER_MCP_URL = os.environ.get(
+    "BIGMODEL_WEB_READER_MCP_URL", "https://open.bigmodel.cn/api/mcp/web_reader/mcp"
+)
+
 # API for Web Scraping
-JINA_API_KEY = os.environ.get("JINA_API_KEY")
+JINA_API_KEY = os.environ.get("JINA_API_KEY") or ""
 JINA_BASE_URL = os.environ.get("JINA_BASE_URL", "https://r.jina.ai")
 
 # API for Linux Sandbox
-E2B_API_KEY = os.environ.get("E2B_API_KEY")
+E2B_API_KEY = os.environ.get("E2B_API_KEY") or ""
 
 # API for Open-Source Audio Transcription Tool
-WHISPER_BASE_URL = os.environ.get("WHISPER_BASE_URL")
-WHISPER_API_KEY = os.environ.get("WHISPER_API_KEY")
-WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME")
+WHISPER_BASE_URL = os.environ.get("WHISPER_BASE_URL") or ""
+WHISPER_API_KEY = os.environ.get("WHISPER_API_KEY") or ""
+WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME") or ""
 
 # API for Open-Source VQA Tool
-VISION_API_KEY = os.environ.get("VISION_API_KEY")
-VISION_BASE_URL = os.environ.get("VISION_BASE_URL")
-VISION_MODEL_NAME = os.environ.get("VISION_MODEL_NAME")
+VISION_API_KEY = os.environ.get("VISION_API_KEY") or ""
+VISION_BASE_URL = os.environ.get("VISION_BASE_URL") or ""
+VISION_MODEL_NAME = os.environ.get("VISION_MODEL_NAME") or ""
 
 # API for Open-Source Reasoning Tool
-REASONING_API_KEY = os.environ.get("REASONING_API_KEY")
-REASONING_BASE_URL = os.environ.get("REASONING_BASE_URL")
-REASONING_MODEL_NAME = os.environ.get("REASONING_MODEL_NAME")
+REASONING_API_KEY = os.environ.get("REASONING_API_KEY") or ""
+REASONING_BASE_URL = os.environ.get("REASONING_BASE_URL") or ""
+REASONING_MODEL_NAME = os.environ.get("REASONING_MODEL_NAME") or ""
 
 # API for Claude Sonnet 3.7 as Commercial Tools
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or ""
 ANTHROPIC_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
 
 # API Keys for Commercial Tools
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or ""
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
 # API for Sogou Search
-TENCENTCLOUD_SECRET_ID = os.environ.get("TENCENTCLOUD_SECRET_ID")
-TENCENTCLOUD_SECRET_KEY = os.environ.get("TENCENTCLOUD_SECRET_KEY")
+TENCENTCLOUD_SECRET_ID = os.environ.get("TENCENTCLOUD_SECRET_ID") or ""
+TENCENTCLOUD_SECRET_KEY = os.environ.get("TENCENTCLOUD_SECRET_KEY") or ""
 
 # API for Summary LLM
-SUMMARY_LLM_API_KEY = os.environ.get("SUMMARY_LLM_API_KEY")
-SUMMARY_LLM_BASE_URL = os.environ.get("SUMMARY_LLM_BASE_URL")
-SUMMARY_LLM_MODEL_NAME = os.environ.get("SUMMARY_LLM_MODEL_NAME")
+SUMMARY_LLM_API_KEY = os.environ.get("SUMMARY_LLM_API_KEY") or ""
+SUMMARY_LLM_BASE_URL = os.environ.get("SUMMARY_LLM_BASE_URL") or ""
+SUMMARY_LLM_MODEL_NAME = os.environ.get("SUMMARY_LLM_MODEL_NAME") or ""
 
 
 # MCP server configuration generation function
@@ -110,6 +120,53 @@ def create_mcp_server_parameters(cfg: DictConfig, agent_cfg: DictConfig):
                         "JINA_BASE_URL": JINA_BASE_URL,
                     },
                 ),
+            }
+        )
+
+    if (
+        agent_cfg.get("tools", None) is not None
+        and "tool-brave-llm-context" in agent_cfg["tools"]
+    ):
+        if not BRAVE_API_KEY:
+            raise ValueError(
+                "BRAVE_API_KEY not set, tool-brave-llm-context will be unavailable."
+            )
+
+        brave_env = {"BRAVE_API_KEY": BRAVE_API_KEY}
+        if BRAVE_API_VERSION:
+            brave_env["BRAVE_API_VERSION"] = BRAVE_API_VERSION
+
+        configs.append(
+            {
+                "name": "tool-brave-llm-context",
+                "params": StdioServerParameters(
+                    command=sys.executable,
+                    args=[
+                        "-m",
+                        "miroflow_tools.mcp_servers.brave_llm_context_mcp_server",
+                    ],
+                    env=brave_env,
+                ),
+            }
+        )
+
+    if (
+        agent_cfg.get("tools", None) is not None
+        and "zhipu_web_reader" in agent_cfg["tools"]
+    ):
+        if not BIGMODEL_API_KEY:
+            raise ValueError(
+                "BIGMODEL_API_KEY not set, zhipu_web_reader will be unavailable."
+            )
+
+        configs.append(
+            {
+                "name": "zhipu_web_reader",
+                "params": {
+                    "type": "streamableHttp",
+                    "url": BIGMODEL_WEB_READER_MCP_URL,
+                    "headers": {"Authorization": f"Bearer {BIGMODEL_API_KEY}"},
+                },
             }
         )
 
@@ -396,7 +453,7 @@ def expose_sub_agents_as_tools(sub_agents_cfg: DictConfig):
     """
     sub_agents_server_params = []
     for sub_agent in sub_agents_cfg.keys():
-        if "agent-browsing" in sub_agent:
+        if sub_agent == "agent-browsing":
             sub_agents_server_params.append(
                 dict(
                     name="agent-browsing",
@@ -461,6 +518,8 @@ def get_env_info(cfg: DictConfig) -> dict:
         ),
         # API Keys (masked for security)
         "has_serper_api_key": bool(SERPER_API_KEY),
+        "has_brave_api_key": bool(BRAVE_API_KEY),
+        "has_bigmodel_api_key": bool(BIGMODEL_API_KEY),
         "has_jina_api_key": bool(JINA_API_KEY),
         "has_anthropic_api_key": bool(ANTHROPIC_API_KEY),
         "has_openai_api_key": bool(OPENAI_API_KEY),
@@ -473,6 +532,8 @@ def get_env_info(cfg: DictConfig) -> dict:
         "anthropic_base_url": ANTHROPIC_BASE_URL,
         "jina_base_url": JINA_BASE_URL,
         "serper_base_url": SERPER_BASE_URL,
+        "brave_api_version": BRAVE_API_VERSION,
+        "bigmodel_web_reader_mcp_url": BIGMODEL_WEB_READER_MCP_URL,
         "whisper_base_url": WHISPER_BASE_URL,
         "vision_base_url": VISION_BASE_URL,
         "reasoning_base_url": REASONING_BASE_URL,

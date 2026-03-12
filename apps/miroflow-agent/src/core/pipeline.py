@@ -168,6 +168,19 @@ async def execute_task_pipeline(
     finally:
         task_log.end_time = get_utc_plus_8_time()
 
+        # Best-effort cleanup of tool managers (remote HTTP sessions, browser sessions, etc.)
+        try:
+            if hasattr(main_agent_tool_manager, "aclose"):
+                await main_agent_tool_manager.aclose()
+        except Exception:
+            pass
+        try:
+            for tm in (sub_agent_tool_managers or {}).values():
+                if hasattr(tm, "aclose"):
+                    await tm.aclose()
+        except Exception:
+            pass
+
         # Record task summary to structured log
         task_log.log_step(
             "info",

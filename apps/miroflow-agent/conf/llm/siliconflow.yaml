@@ -1,0 +1,28 @@
+# conf/llm/siliconflow.yaml
+# OpenAI-compatible config (e.g. SiliconFlow / vLLM / etc.).
+#
+# Notes:
+# - We intentionally read API key/base_url from environment variables so secrets
+#   stay in local `.env` (gitignored).
+# - Prefer SILICONFLOW_* env vars to avoid accidentally using OpenAI defaults.
+# - `model_name` can be set here (committed) or overridden via env.
+
+defaults:
+  - qwen-3
+  - _self_
+
+provider: "openai"
+
+# GLM5.0 defaults (SiliconFlow): 192k context, 8192 max output tokens
+max_context_length: 196608
+max_tokens: 8192
+
+# Read API key from local `.env` (recommended)
+api_key: ${oc.env:SILICONFLOW_API_KEY,${oc.env:OPENAI_API_KEY,""}}
+
+# Keep base_url fixed to avoid accidental calls to api.openai.com.
+# Override via CLI if you truly need a custom endpoint.
+base_url: "https://api.siliconflow.cn/v1"
+
+# Prefer GLM5.0 by default, allow env override for per-user convenience
+model_name: ${oc.env:SILICONFLOW_MODEL_NAME,${oc.env:OPENAI_MODEL_NAME,"glm-5.0"}}

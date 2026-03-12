@@ -12,3 +12,8 @@ hydra:
 # You can define some top-level or default parameters here
 project_name: "miroflow-agent"
 debug_dir: "../../logs/debug"
+
+# Task inputs (overridable via CLI)
+task_id: "task_example"
+task_file_name: ""
+task_description: ""
